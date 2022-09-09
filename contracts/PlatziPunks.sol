@@ -45,7 +45,7 @@ contract PlatziPunks is ERC721, ERC721Enumerable {
             _exists(tokenId),
             "ERC721 Metadata: URI query for non-existing token"
         );
-        string memory jsonURI = abi.encodePacked(
+        bytes memory jsonURI = abi.encodePacked(
             '{ "name": "PlatziPunks #',
                 tokenId.toString(),
                 '", "description": "Platzi Punks are randomized Avataaars stored on chain to teach DApp development on Platzi", "image": "',
@@ -53,11 +53,11 @@ contract PlatziPunks is ERC721, ERC721Enumerable {
             '"}'
         );
 
-        return String(
+        return string(
             abi.encodePacked(
                 "data:application/json;base64,",
                 Base64.encode(jsonURI)
-            );
+            )
         );
     }
 
