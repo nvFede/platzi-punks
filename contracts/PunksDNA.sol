@@ -1,8 +1,9 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
-contract PunksDNA{
-     string[] private _accessoriesType = [
+contract PlatziPunksDNA {
+    string[] private _accessoriesType = [
         "Blank",
         "Kurt",
         "Prescription01",
@@ -200,30 +201,32 @@ contract PunksDNA{
         "ShortHairTheCaesarSidePart"
     ];
 
+    // This pseudo random function is determistic and should not be used on production
+    function deterministicPseudoRandomDNA(uint256 _tokenId, address _minter)
+        public
+        pure
+        returns (uint256)
+    {
+        uint256 combinedParams = _tokenId + uint160(_minter);
+        bytes memory encodedParams = abi.encodePacked(combinedParams);
+        bytes32 hashedParams = keccak256(encodedParams);
 
+        return uint256(hashedParams);
+    }
 
     // Get attributes
     uint8 constant ADN_SECTION_SIZE = 2;
 
-    // not be used in production - Alternative CHAINLINK
-    function deterministicPseudoRandomDNA( uint256 _tokenId, address _minter) 
-        public pure returns (uint256)
-    {
-        uint256 combinedParams = _tokenId + uint160(_minter);
-        bytes memory encodedParams = abi.encodePacked(
-            combinedParams
-        );
-        bytes32 memory hashedParams = keccak256(encodedParams);
-        return uint256(hashedParams);
-    }
-
     function _getDNASection(uint256 _dna, uint8 _rightDiscard)
-        internal pure returns (uint8) 
+        internal
+        pure
+        returns (uint8)
     {
-        return uint8( 
-            (_dna % (1 * 10 ** (_rightDiscard + ADN_SECTION_SIZE))) / 
-                (1 * 10 ** _rightDiscard);
-        )
+        return
+            uint8(
+                (_dna % (1 * 10**(_rightDiscard + ADN_SECTION_SIZE))) /
+                    (1 * 10**_rightDiscard)
+            );
     }
 
     function getAccessoriesType(uint256 _dna)
@@ -231,16 +234,14 @@ contract PunksDNA{
         view
         returns (string memory)
     {
-        uint256 dnaSection = _getDNASection(_dna, 0);
+        uint8 dnaSection = _getDNASection(_dna, 0);
         return _accessoriesType[dnaSection % _accessoriesType.length];
     }
 
     function getClotheColor(uint256 _dna) public view returns (string memory) {
-        uint256 dnaSection = _getDNASection(_dna, 2);
+        uint8 dnaSection = _getDNASection(_dna, 2);
         return _clotheColor[dnaSection % _clotheColor.length];
     }
-
-    
 
     function getClotheType(uint256 _dna) public view returns (string memory) {
         uint256 dnaSection = _getDNASection(_dna, 4);
