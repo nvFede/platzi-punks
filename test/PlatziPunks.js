@@ -1,40 +1,73 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
 
-describe("PlatziPunks", function () {
-  let platzi_punks;
-  beforeEach(async function () {
+describe("Platzi Punks Contract", () => {
+  const setup = async ({ maxSupply = 10000 }) => {
+    const [owner] = await ethers.getSigners();
     const PlatziPunks = await ethers.getContractFactory("PlatziPunks");
-    platzi_punks = await PlatziPunks.deploy(2);
-    await platzi_punks.deployed();
-  })
+    const deployed = await PlatziPunks.deploy(maxSupply);
 
-  describe("tokenURI", async function () {
-    it("Should throw an error if tokenId don't exists", async function () {
-      try {
-        await platzi_punks.tokenURI(0)
-        expect.fail('fail with an error');
-      } catch (error) {
-        expect(error.message).to.contains('ERC721Metadata: URI query for nonexistent token');
-      }
+    return {
+      owner,
+      deployed,
+    };
+  };
+
+  describe("Deployment", () => {
+    it("Sets max supply to passed param", async () => {
+      const maxSupply = 4000;
+
+      const { deployed } = await setup({ maxSupply });
+
+      const returnedMaxSupply = await deployed.maxSupply();
+      expect(maxSupply).to.equal(returnedMaxSupply);
+    });
+  });
+
+  describe("Minting", () => {
+    it("Mints a new token and assigns it to owner", async () => {
+      const { owner, deployed } = await setup({});
+
+      await deployed.mint();
+
+      const ownerOfMinted = await deployed.ownerOf(0);
+
+      expect(ownerOfMinted).to.equal(owner.address);
     });
 
-    it("Should return the correct tokenURI protocol mime type", async function () {
-      await platzi_punks.mint()
-      expect(await platzi_punks.tokenURI(0)).to.includes("data:application/json;base64,");
-    });
+    it("Has a minting limit", async () => {
+      const maxSupply = 2;
 
-    it("Should name token with correct number based on tokenId", async function () {
-      await platzi_punks.mint()
-      await platzi_punks.mint()
+      const { deployed } = await setup({ maxSupply });
 
-      expect(await platzi_punks.tokenURI(0)).to.includes(
-        Buffer.from('{ "name": "PlatziPunks #0"').toString('base64').slice(0, -1)
+      // Mint all
+      await Promise.all([deployed.mint(), deployed.mint()]);
+
+      // Assert the last minting
+      await expect(deployed.mint()).to.be.revertedWith(
+        "No PlatziPunks left :("
       );
-      expect(await platzi_punks.tokenURI(1)).to.includes(
-        Buffer.from('{ "name": "PlatziPunks #1"').toString('base64').slice(0, -1)
-      );
     });
-  })
+  });
 
+  describe("tokenURI", () => {
+    it("returns valid metadata", async () => {
+      const { deployed } = await setup({});
+
+      await deployed.mint();
+
+      const tokenURI = await deployed.tokenURI(0);
+      const stringifiedTokenURI = await tokenURI.toString();
+      const [, base64JSON] = stringifiedTokenURI.split(
+        "data:application/json;base64,"
+      );
+      const stringifiedMetadata = await Buffer.from(
+        base64JSON,
+        "base64"
+      ).toString("ascii");
+
+      const metadata = JSON.parse(stringifiedMetadata);
+
+      expect(metadata).to.have.all.keys("name", "description", "image");
+    });
+  });
 });
